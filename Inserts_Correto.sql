@@ -3,6 +3,25 @@
 -- CPF/CNPJ sao numeros ficticios (nao possuem digitos verificadores validos).
 -- Senhas sao hashes SHA-256 de exemplo ('senha1', 'senha2'...), apenas para teste.
 
+--login de administrador do sistema, a senha é adm
+BEGIN TRANSACTION;
+
+DECLARE @COD INT;
+
+INSERT INTO PESSOAS (ENDERECO, CEP, NUMERO, CIDADE, ESTADO, TELEFONE, NOME, EMAIL)
+VALUES ('Rua Administracao', '01310100', '1', 'Sao Paulo', 'SP', '(11) 90000-0000', 'Areco', 'areco@gmail.com');
+
+SET @COD = SCOPE_IDENTITY();
+
+INSERT INTO PESSOAS_FISICAS (PESSOA_FISICA_COD, CPF, RG, DATA_NASCIMENTO)
+VALUES (@COD, '99988877766', NULL, '1990-01-01');
+
+INSERT INTO PRESTADOR_SERVICOS (PRESTADOR_COD, PAGAMENTO, ADMINISTRADOR, SENHA)
+VALUES (@COD, 0.00, 1, '86f65e28a754e1a71b2df9403615a6c436c32c42a75a10d02813961b86f1e428');
+
+COMMIT TRANSACTION;
+GO
+
 -- ============================================================
 -- PESSOAS (1-10 = PF prestadores | 11-30 = PF somente clientes | 31-50 = pessoas juridicas)
 -- ============================================================
