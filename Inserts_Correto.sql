@@ -3,28 +3,18 @@
 -- CPF/CNPJ sao numeros ficticios (nao possuem digitos verificadores validos).
 -- Senhas sao hashes SHA-256 de exemplo ('senha1', 'senha2'...), apenas para teste.
 
-BEGIN TRANSACTION;
 
-DECLARE @COD INT;
 
-SELECT @COD = COD_PESSOA
-FROM PESSOAS
-WHERE EMAIL = 'areco@gmail.com';
+-- login de administrador do sistema,
+-- login admin@areco.com
+-- senha admin
 
-DELETE FROM PRESTADOR_SERVICOS WHERE PRESTADOR_COD     = @COD;
-DELETE FROM PESSOAS_FISICAS    WHERE PESSOA_FISICA_COD = @COD;
-DELETE FROM PESSOAS            WHERE COD_PESSOA        = @COD;
-
-COMMIT TRANSACTION;
-GO
-
---login de administrador do sistema, a senha é adm
 BEGIN TRANSACTION;
 
 DECLARE @COD INT;
 
 INSERT INTO PESSOAS (ENDERECO, CEP, NUMERO, CIDADE, ESTADO, TELEFONE, NOME, EMAIL)
-VALUES ('Rua Administracao', '01310100', '1', 'Sao Paulo', 'SP', '(11) 90000-0000', 'Areco', 'areco@gmail.com');
+VALUES ('Rua Administracao', '01310100', '1', 'Sao Paulo', 'SP', '(11) 90000-0000', 'Areco', 'admin@areco.com');
 
 SET @COD = SCOPE_IDENTITY();
 
@@ -32,7 +22,7 @@ INSERT INTO PESSOAS_FISICAS (PESSOA_FISICA_COD, CPF, RG, DATA_NASCIMENTO)
 VALUES (@COD, '99988877766', NULL, '1990-01-01');
 
 INSERT INTO PRESTADOR_SERVICOS (PRESTADOR_COD, PAGAMENTO, ADMINISTRADOR, SENHA)
-VALUES (@COD, 0.00, 1, '86f65e28a754e1a71b2df9403615a6c436c32c42a75a10d02813961b86f1e428');
+VALUES (@COD, 0.00, 1, '$2a$10$gHmnE1s1mt.aJ73b8AHyHeSHGhUiuOmLSMMgxTq1YiPkgOGPj/Foa');
 
 COMMIT TRANSACTION;
 GO
