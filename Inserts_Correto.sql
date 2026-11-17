@@ -3,6 +3,21 @@
 -- CPF/CNPJ sao numeros ficticios (nao possuem digitos verificadores validos).
 -- Senhas sao hashes SHA-256 de exemplo ('senha1', 'senha2'...), apenas para teste.
 
+BEGIN TRANSACTION;
+
+DECLARE @COD INT;
+
+SELECT @COD = COD_PESSOA
+FROM PESSOAS
+WHERE EMAIL = 'areco@gmail.com';
+
+DELETE FROM PRESTADOR_SERVICOS WHERE PRESTADOR_COD     = @COD;
+DELETE FROM PESSOAS_FISICAS    WHERE PESSOA_FISICA_COD = @COD;
+DELETE FROM PESSOAS            WHERE COD_PESSOA        = @COD;
+
+COMMIT TRANSACTION;
+GO
+
 --login de administrador do sistema, a senha é adm
 BEGIN TRANSACTION;
 
