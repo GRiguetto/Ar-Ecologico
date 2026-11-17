@@ -1,0 +1,365 @@
+{
+  "info": {
+    "name": "AR Ecológico API",
+    "description": "Todos os endpoints do back-end. As pastas estão na ordem de dependência: rode de cima para baixo (ou use 'Run collection'). Cada POST salva o código criado em variáveis da coleção ({{pfId}}, {{pjId}}, {{prestadorId}}, {{equipamentoId}}, {{servicoId}}, {{contratoId}}, {{osId}}). A pasta 9 apaga tudo o que foi criado.\n\nRelacionamentos são enviados por código: \"pessoaFisicaCod\": 1.\nGET /{id} devolve uma LISTA com 1 item.\nErros: 400 (dados inválidos), 404 (não encontrado), 409 (viola regra do banco: CPF/CNPJ repetido, FK, CHECK).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "pfId", "value": "" },
+    { "key": "pjId", "value": "" },
+    { "key": "pessoaId", "value": "" },
+    { "key": "prestadorId", "value": "" },
+    { "key": "equipamentoId", "value": "" },
+    { "key": "servicoId", "value": "" },
+    { "key": "contratoId", "value": "" },
+    { "key": "osId", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// CPF/CNPJ aleatórios para poder rodar a coleção várias vezes sem 409 de duplicidade",
+          "const num = n => Array.from({length: n}, () => Math.floor(Math.random() * 10)).join('');",
+          "pm.collectionVariables.set('cpfAleatorio', num(11));",
+          "pm.collectionVariables.set('cpfPrestador', num(11));",
+          "pm.collectionVariables.set('cnpjAleatorio', num(14));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Pessoas Físicas",
+      "item": [
+        {
+          "name": "Criar pessoa física",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('pfId', pm.response.json().codPessoa);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/PessoasFisicas",
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Maria Souza\",\n  \"endereco\": \"Rua das Flores\",\n  \"cep\": \"01001000\",\n  \"numero\": \"100\",\n  \"cidade\": \"Sao Paulo\",\n  \"estado\": \"SP\",\n  \"telefone\": \"11999998888\",\n  \"email\": \"maria@email.com\",\n  \"cpf\": \"{{cpfAleatorio}}\",\n  \"rg\": \"123456789\",\n  \"dataNascimento\": \"1990-05-20\"\n}" }
+          }
+        },
+        { "name": "Listar pessoas físicas", "request": { "method": "GET", "url": "{{baseUrl}}/PessoasFisicas" } },
+        { "name": "Buscar pessoa física", "request": { "method": "GET", "url": "{{baseUrl}}/PessoasFisicas/{{pfId}}" } },
+        {
+          "name": "Atualizar pessoa física (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/PessoasFisicas/{{pfId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Maria Souza Lima\",\n  \"endereco\": \"Rua das Flores\",\n  \"cep\": \"01001000\",\n  \"numero\": \"100\",\n  \"cidade\": \"Sao Paulo\",\n  \"estado\": \"SP\",\n  \"telefone\": \"11999998888\",\n  \"email\": \"maria@email.com\",\n  \"cpf\": \"{{cpfAleatorio}}\",\n  \"rg\": \"123456789\",\n  \"dataNascimento\": \"1990-05-20\"\n}" }
+          }
+        },
+        {
+          "name": "Atualizar parcial (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/PessoasFisicas/{{pfId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"telefone\": \"11912345678\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Pessoas Jurídicas",
+      "item": [
+        {
+          "name": "Criar pessoa jurídica",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('pjId', pm.response.json().codPessoa);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/PessoasJuridicas",
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Climatiza Ar\",\n  \"endereco\": \"Av. Paulista\",\n  \"cep\": \"01310100\",\n  \"numero\": \"1500\",\n  \"cidade\": \"Sao Paulo\",\n  \"estado\": \"SP\",\n  \"telefone\": \"1133334444\",\n  \"email\": \"contato@climatiza.com\",\n  \"cnpj\": \"{{cnpjAleatorio}}\",\n  \"razaoSocial\": \"Climatiza Ar Condicionado LTDA\"\n}" }
+          }
+        },
+        { "name": "Listar pessoas jurídicas", "request": { "method": "GET", "url": "{{baseUrl}}/PessoasJuridicas" } },
+        { "name": "Buscar pessoa jurídica", "request": { "method": "GET", "url": "{{baseUrl}}/PessoasJuridicas/{{pjId}}" } },
+        {
+          "name": "Atualizar parcial (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/PessoasJuridicas/{{pjId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"razaoSocial\": \"Climatiza Ar Condicionado S.A.\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Prestadores de Serviço",
+      "item": [
+        {
+          "name": "Criar prestador",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.test('senha não aparece na resposta', () => pm.expect(pm.response.json()).to.not.have.property('senha'));",
+            "pm.collectionVariables.set('prestadorId', pm.response.json().codPessoa);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/PrestadoresServicos",
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Carlos Tecnico\",\n  \"endereco\": \"Rua B\",\n  \"cep\": \"02002000\",\n  \"numero\": \"45\",\n  \"cidade\": \"Sao Paulo\",\n  \"estado\": \"SP\",\n  \"telefone\": \"11988887777\",\n  \"cpf\": \"{{cpfPrestador}}\",\n  \"dataNascimento\": \"1985-03-10\",\n  \"pagamento\": 3500.00,\n  \"administrador\": false,\n  \"senha\": \"senha123\"\n}" }
+          }
+        },
+        { "name": "Listar prestadores", "request": { "method": "GET", "url": "{{baseUrl}}/PrestadoresServicos" } },
+        { "name": "Buscar prestador", "request": { "method": "GET", "url": "{{baseUrl}}/PrestadoresServicos/{{prestadorId}}" } },
+        {
+          "name": "Alterar pagamento/senha (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/PrestadoresServicos/{{prestadorId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"pagamento\": 4000.00,\n  \"senha\": \"novaSenha456\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Pessoas (base)",
+      "item": [
+        { "name": "Listar todas as pessoas", "request": { "method": "GET", "url": "{{baseUrl}}/Pessoas" } },
+        {
+          "name": "Criar pessoa (sem PF/PJ)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.collectionVariables.set('pessoaId', pm.response.json().codPessoa);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Pessoas",
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Pessoa Base\",\n  \"endereco\": \"Rua C\",\n  \"cep\": \"03003000\",\n  \"numero\": \"1\",\n  \"cidade\": \"Santos\",\n  \"estado\": \"SP\",\n  \"telefone\": \"1333334444\"\n}" }
+          }
+        },
+        { "name": "Buscar pessoa", "request": { "method": "GET", "url": "{{baseUrl}}/Pessoas/{{pessoaId}}" } }
+      ]
+    },
+    {
+      "name": "5. Equipamentos e Serviços (catálogo)",
+      "item": [
+        {
+          "name": "Criar equipamento",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.collectionVariables.set('equipamentoId', pm.response.json().codEquipamento);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Equipamentos",
+            "body": { "mode": "raw", "raw": "{\n  \"btus\": 12000,\n  \"modelo\": \"Split Hi-Wall Inverter\",\n  \"marca\": \"LG\",\n  \"obs\": \"Sala de reunioes\"\n}" }
+          }
+        },
+        { "name": "Listar equipamentos", "request": { "method": "GET", "url": "{{baseUrl}}/Equipamentos" } },
+        {
+          "name": "Atualizar equipamento (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Equipamentos/{{equipamentoId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"btus\": 18000\n}" }
+          }
+        },
+        {
+          "name": "Criar serviço",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.collectionVariables.set('servicoId', pm.response.json().codServico);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Servicos",
+            "body": { "mode": "raw", "raw": "{\n  \"dataInicio\": \"2026-01-01\",\n  \"dataFim\": \"2026-12-31\",\n  \"valorServico\": 150.00,\n  \"descricao\": \"Limpeza completa\"\n}" }
+          }
+        },
+        { "name": "Listar serviços", "request": { "method": "GET", "url": "{{baseUrl}}/Servicos" } },
+        {
+          "name": "Atualizar serviço (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Servicos/{{servicoId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"dataInicio\": \"2026-01-01\",\n  \"dataFim\": \"2026-12-31\",\n  \"valorServico\": 165.00,\n  \"descricao\": \"Limpeza completa\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Contratos",
+      "item": [
+        {
+          "name": "Criar contrato (cliente PF)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('contratoId', pm.response.json().codContrato);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Contratos",
+            "body": { "mode": "raw", "raw": "{\n  \"descricao\": \"Manutencao preventiva residencial\",\n  \"dataInicio\": \"2026-01-01\",\n  \"dataFim\": \"2026-12-31\",\n  \"tipoContrato\": \"Manutencao Mensal\",\n  \"status\": 1,\n  \"pessoaFisicaCod\": {{pfId}}\n}" }
+          }
+        },
+        { "name": "Listar contratos", "request": { "method": "GET", "url": "{{baseUrl}}/Contratos" } },
+        { "name": "Buscar contrato", "request": { "method": "GET", "url": "{{baseUrl}}/Contratos/{{contratoId}}" } },
+        {
+          "name": "Trocar dono para PJ (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Contratos/{{contratoId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"pessoaFisicaCod\": null,\n  \"pessoaJuridicaCod\": {{pjId}}\n}" }
+          }
+        },
+        {
+          "name": "ERRO: PF e PJ juntas -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/Contratos",
+            "body": { "mode": "raw", "raw": "{\n  \"descricao\": \"x\",\n  \"dataInicio\": \"2026-01-01\",\n  \"dataFim\": \"2026-12-31\",\n  \"tipoContrato\": \"x\",\n  \"pessoaFisicaCod\": {{pfId}},\n  \"pessoaJuridicaCod\": {{pjId}}\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Equipamentos do Contrato",
+      "item": [
+        {
+          "name": "Associar equipamento ao contrato",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/ContratosEquipamentos",
+            "body": { "mode": "raw", "raw": "{\n  \"contratoCod\": {{contratoId}},\n  \"equipamentoCod\": {{equipamentoId}},\n  \"qtd\": 2\n}" }
+          }
+        },
+        { "name": "Listar associações", "request": { "method": "GET", "url": "{{baseUrl}}/ContratosEquipamentos" } },
+        { "name": "Buscar associação", "request": { "method": "GET", "url": "{{baseUrl}}/ContratosEquipamentos/{{contratoId}}/{{equipamentoId}}" } },
+        {
+          "name": "Alterar quantidade (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/ContratosEquipamentos/{{contratoId}}/{{equipamentoId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"qtd\": 5\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Ordens de Serviço e Serviços Realizados",
+      "item": [
+        {
+          "name": "Abrir OS (cliente PJ)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('osId', pm.response.json().codOs);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/OrdensServico",
+            "body": { "mode": "raw", "raw": "{\n  \"tipoOs\": \"Corretiva\",\n  \"descricaoProblema\": \"Aparelho pingando agua\",\n  \"dataAbertura\": \"2026-11-16\",\n  \"status\": 1,\n  \"pessoaJuridicaCod\": {{pjId}},\n  \"contratoCod\": {{contratoId}}\n}" }
+          }
+        },
+        { "name": "Listar OS", "request": { "method": "GET", "url": "{{baseUrl}}/OrdensServico" } },
+        {
+          "name": "Concluir OS e atribuir prestador (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/OrdensServico/{{osId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": 3,\n  \"prestadorServicoCod\": {{prestadorId}},\n  \"descricaoExecutado\": \"Troca do dreno\",\n  \"dataExecucao\": \"2026-11-17\",\n  \"valor\": 280.00\n}" }
+          }
+        },
+        {
+          "name": "Lançar serviço na OS",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/ServicosRealizados",
+            "body": { "mode": "raw", "raw": "{\n  \"osCod\": {{osId}},\n  \"servicoCod\": {{servicoId}},\n  \"qtd\": 2,\n  \"valor\": 150.00,\n  \"desconto\": 20.00,\n  \"formaPagamento\": \"PIX\",\n  \"obs\": \"Cliente antigo\"\n}" }
+          }
+        },
+        { "name": "Listar serviços realizados", "request": { "method": "GET", "url": "{{baseUrl}}/ServicosRealizados" } },
+        { "name": "Buscar serviço realizado", "request": { "method": "GET", "url": "{{baseUrl}}/ServicosRealizados/{{osId}}/{{servicoId}}" } },
+        {
+          "name": "ERRO: desconto maior que total -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/ServicosRealizados/{{osId}}/{{servicoId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"desconto\": 99999\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Limpeza (DELETE em ordem)",
+      "item": [
+        { "name": "Apagar serviço realizado", "request": { "method": "DELETE", "url": "{{baseUrl}}/ServicosRealizados/{{osId}}/{{servicoId}}" } },
+        { "name": "Apagar OS", "request": { "method": "DELETE", "url": "{{baseUrl}}/OrdensServico/{{osId}}" } },
+        { "name": "Apagar associação", "request": { "method": "DELETE", "url": "{{baseUrl}}/ContratosEquipamentos/{{contratoId}}/{{equipamentoId}}" } },
+        { "name": "Apagar contrato", "request": { "method": "DELETE", "url": "{{baseUrl}}/Contratos/{{contratoId}}" } },
+        { "name": "Apagar serviço", "request": { "method": "DELETE", "url": "{{baseUrl}}/Servicos/{{servicoId}}" } },
+        { "name": "Apagar equipamento", "request": { "method": "DELETE", "url": "{{baseUrl}}/Equipamentos/{{equipamentoId}}" } },
+        { "name": "Apagar prestador", "request": { "method": "DELETE", "url": "{{baseUrl}}/PrestadoresServicos/{{prestadorId}}" } },
+        { "name": "Apagar pessoa jurídica", "request": { "method": "DELETE", "url": "{{baseUrl}}/PessoasJuridicas/{{pjId}}" } },
+        { "name": "Apagar pessoa física", "request": { "method": "DELETE", "url": "{{baseUrl}}/PessoasFisicas/{{pfId}}" } },
+        { "name": "Apagar pessoa base", "request": { "method": "DELETE", "url": "{{baseUrl}}/Pessoas/{{pessoaId}}" } },
+        {
+          "name": "Conferir: PF apagada -> 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/PessoasFisicas/{{pfId}}" }
+        }
+      ]
+    },
+    {
+      "name": "10. Dashboard (views e functions do banco)",
+      "item": [
+        {
+          "name": "Cards - todo o período",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/cartoes", "description": "VW_DASHBOARD_CARTOES + FN_FATURAMENTO_PERIODO(NULL, NULL) + FC_ORDEM_SERVICO_MEDIA(NULL, NULL)" }
+        },
+        {
+          "name": "Cards - com período",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/cartoes?inicio=2026-01-01&fim=2026-12-31", "description": "faturamento e ticketMedio consideram só as OS concluídas no período" }
+        },
+        {
+          "name": "Contratos vencendo em 30 dias",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard/contratos-vencendo", "description": "VW_CONTRATOS_VENCENDO_30_DIAS" }
+        },
+        {
+          "name": "Login (POST /auth/login)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@arecologico.com\",\n  \"senha\": \"admin123\"\n}" }
+          }
+        }
+      ]
+    }
+  ]
+}

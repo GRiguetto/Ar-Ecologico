@@ -1,0 +1,157 @@
+/* =====================================================================
+   bd_ar - AR Ecologico
+
+   Tabelas: script oficial do time de banco (Script_Ar_Ecologico.sql), sem alteracoes.
+
+   ORDEM DE EXECUCAO DOS SCRIPTS (troque bd_ar pelo nome do seu banco, ex.: teste1):
+     1) arEcologico.sql            este arquivo: banco + tabelas
+     2) sql\procedures.sql         procedures de cadastro usadas pelo sistema
+     3) sql\views_e_functions.sql  views/functions dos cards e relatorios
+     4) sql\dados_exemplo.sql      opcional: dados para teste
+
+   Executar no SSMS ou com:
+     sqlcmd -S localhost -E -C -i arEcologico.sql
+   ===================================================================== */
+
+IF DB_ID('bd_ar') IS NULL
+    CREATE DATABASE bd_ar;
+GO
+
+USE bd_ar;
+GO
+
+/* ------------------------------------------------------------------ */
+/* 1. TABELAS (script oficial do time de banco)                       */
+/* ------------------------------------------------------------------ */
+
+CREATE TABLE PESSOAS (
+    COD_PESSOA      INT             NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    ENDERECO        VARCHAR(50)     NOT NULL,
+    CEP             CHAR(8)         NOT NULL,
+    NUMERO          VARCHAR(10)     NOT NULL,
+    CIDADE          VARCHAR(50)     NOT NULL,
+    ESTADO          CHAR(2)         NOT NULL,
+    TELEFONE        VARCHAR(15)     NOT NULL,
+    NOME            VARCHAR(100)    NOT NULL,
+    EMAIL           VARCHAR(150)    NULL
+)
+GO
+
+CREATE TABLE PESSOAS_FISICAS (
+    PESSOA_FISICA_COD   INT         NOT NULL PRIMARY KEY
+                        REFERENCES PESSOAS (COD_PESSOA),
+    CPF                 CHAR(11)    NOT NULL UNIQUE,
+    RG                  CHAR(15)    NULL,
+    DATA_NASCIMENTO     DATE        NOT NULL
+)
+GO
+
+CREATE TABLE PESSOAS_JURIDICAS (
+    PESSOA_JURIDICA_COD INT         NOT NULL PRIMARY KEY
+                        REFERENCES PESSOAS (COD_PESSOA),
+    CNPJ                CHAR(14)    NOT NULL UNIQUE,
+    RAZAO_SOCIAL        VARCHAR(100) NOT NULL
+)
+GO
+
+CREATE TABLE PRESTADOR_SERVICOS (
+    PRESTADOR_COD       INT             NOT NULL PRIMARY KEY
+                        REFERENCES PESSOAS_FISICAS (PESSOA_FISICA_COD),
+    PAGAMENTO           DECIMAL(10,2)   NOT NULL,
+    ADMINISTRADOR       BIT NOT NULL DEFAULT 1,
+    SENHA               VARCHAR(255)    NOT NULL
+)
+GO
+
+CREATE TABLE CONTRATOS (
+    COD_CONTRATO        INT             NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    DESCRICAO           VARCHAR(500)    NOT NULL,
+    DATA_INICIO         DATE            NOT NULL,
+    DATA_FIM            DATE            NOT NULL,
+    TIPO_CONTRATO       VARCHAR(50)     NOT NULL,
+    OBS                 VARCHAR(500)    NULL,
+    STATUS                  INT         NOT NULL CHECK (STATUS IN (1, 2)),
+    COD_PESSOA_FISICA   INT             NULL,
+    COD_PESSOA_JURIDICA INT             NULL,
+    FOREIGN KEY (COD_PESSOA_FISICA)   REFERENCES PESSOAS_FISICAS (PESSOA_FISICA_COD),
+    FOREIGN KEY (COD_PESSOA_JURIDICA) REFERENCES PESSOAS_JURIDICAS (PESSOA_JURIDICA_COD),
+    -- o contrato pertence a uma pessoa fisica OU a uma juridica (nunca as duas, nunca nenhuma)
+    CHECK (
+        (COD_PESSOA_FISICA IS NOT NULL AND COD_PESSOA_JURIDICA IS NULL) OR
+        (COD_PESSOA_FISICA IS NULL AND COD_PESSOA_JURIDICA IS NOT NULL)
+    )
+)
+GO
+
+CREATE TABLE EQUIPAMENTOS (
+    COD_EQUIPAMENTO     INT             NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    BTUS                INT             NOT NULL,
+    MODELO              VARCHAR(100)    NOT NULL,
+    MARCA               VARCHAR(50)     NOT NULL,
+    OBS                 VARCHAR(300)    NULL
+)
+GO
+
+CREATE TABLE CONTRATOS_EQUIPAMENTOS (
+    CONTRATO_COD        INT NOT NULL,
+    EQUIPAMENTO_COD     INT NOT NULL,
+    -- ERRO CORRIGIDO: faltava a palavra CHECK antes de (QTD > 0).
+    -- Antes: QTD INT NOT NULL (QTD > 0),
+    -- Esse erro impedia a criacao desta tabela e, por isso, EQUIPAMENTOS ficava sem ligacao com nenhuma tabela.
+    QTD                 INT NOT NULL CHECK (QTD > 0),
+    PRIMARY KEY (CONTRATO_COD, EQUIPAMENTO_COD),
+    FOREIGN KEY (CONTRATO_COD)    REFERENCES CONTRATOS (COD_CONTRATO),
+    FOREIGN KEY (EQUIPAMENTO_COD) REFERENCES EQUIPAMENTOS (COD_EQUIPAMENTO)
+)
+GO
+
+CREATE TABLE ORDENS_SERVICOS (
+    COD_OS                  INT             NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    TIPO_OS                 VARCHAR(50)     NOT NULL,
+    VALOR                   DECIMAL(10,2)   NULL,
+    OBS                     VARCHAR(500)    NULL,
+    DATA_ABERTURA           DATE            NOT NULL,
+    STATUS                  INT             NOT NULL CHECK (STATUS IN (1, 2, 3, 4)),
+    DESCRICAO_PROBLEMA      VARCHAR(500)    NOT NULL,
+    DESCRICAO_EXECUTADO     VARCHAR(500)    NULL,   -- preenchido so depois de executar
+    DATA_EXECUCAO           DATE            NULL,
+    PESSOA_F_COD            INT             NULL,
+    PESSOA_J_COD            INT             NULL,
+    CONTRATO_COD            INT             NULL,
+    PRESTADOR_SERVICO_COD   INT             NULL,   -- pode ser atribuido depois
+    FOREIGN KEY (PESSOA_F_COD)          REFERENCES PESSOAS_FISICAS (PESSOA_FISICA_COD),
+    FOREIGN KEY (PESSOA_J_COD)          REFERENCES PESSOAS_JURIDICAS (PESSOA_JURIDICA_COD),
+    FOREIGN KEY (CONTRATO_COD)          REFERENCES CONTRATOS (COD_CONTRATO),
+    FOREIGN KEY (PRESTADOR_SERVICO_COD) REFERENCES PRESTADOR_SERVICOS (PRESTADOR_COD),
+    CHECK (
+        (PESSOA_F_COD IS NOT NULL AND PESSOA_J_COD IS NULL) OR
+        (PESSOA_F_COD IS NULL AND PESSOA_J_COD IS NOT NULL)
+    )
+)
+GO
+
+CREATE TABLE SERVICOS (
+    COD_SERVICO     INT             NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    DATA_INICIO     DATE            NOT NULL,
+    DATA_FIM        DATE            NOT NULL,
+    VALOR_SERVICO   DECIMAL(10,2)   NOT NULL,
+    DESCRICAO       VARCHAR(500)    NOT NULL
+)
+GO
+
+CREATE TABLE SERVICOS_REALIZADOS (
+    OS_COD          INT             NOT NULL,
+    SERVICO_COD     INT             NOT NULL,
+    QTD             INT             NOT NULL CHECK (QTD > 0),
+    VALOR           DECIMAL(10,2)   NOT NULL CHECK (VALOR >= 0),
+    DESCONTO        DECIMAL(10,2)   NOT NULL DEFAULT 0 CHECK (DESCONTO >= 0),
+    OBS             VARCHAR(500)    NULL,
+    FORMA_PAGAMENTO VARCHAR(50)     NOT NULL,
+    PRIMARY KEY (OS_COD, SERVICO_COD),
+    FOREIGN KEY (OS_COD)      REFERENCES ORDENS_SERVICOS (COD_OS),
+    FOREIGN KEY (SERVICO_COD) REFERENCES SERVICOS (COD_SERVICO),
+    CHECK (DESCONTO <= QTD * VALOR)   -- desconto nunca maior que o total do item
+)
+GO
+
+/* Proximo passo: sql\procedures.sql */
