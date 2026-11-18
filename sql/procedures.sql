@@ -27,9 +27,12 @@
    Senha do prestador: o Java ja manda o HASH (BCrypt). Nunca o texto puro.
 
    Como executar (cria ou atualiza; pode rodar de novo sem problema):
-     sqlcmd -S localhost -E -C -f 65001 -d teste1 -i sql\procedures.sql
-   ou abra no SSMS, selecione o banco e execute (F5).
+     sqlcmd -S localhost -E -C -f 65001 -d bd_ar -i sql\procedures.sql
+   ou abra no SSMS e execute (F5). O USE abaixo garante o banco certo.
    ===================================================================== */
+
+USE bd_ar;
+GO
 
 
 -- 1) CADASTRO DE PESSOA FISICA  (PESSOAS -> PESSOAS_FISICAS)

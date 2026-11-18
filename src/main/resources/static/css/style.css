@@ -303,6 +303,70 @@ dialog::backdrop {
   grid-column: 1 / -1;
 }
 
+/* Validação do formulário */
+.obrigatorio {
+  color: var(--perigo);
+  font-weight: 700;
+}
+
+.nota-obrigatorio {
+  margin: 0;
+  color: var(--suave);
+  font-size: .8125rem;
+  font-weight: 400;
+}
+
+.dica-campo {
+  color: var(--suave);
+  font-size: .75rem;
+  font-weight: 400;
+}
+
+.erro-campo {
+  color: var(--perigo);
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.erro-campo:empty {
+  display: none;
+}
+
+.formulario [aria-invalid="true"] {
+  border-color: var(--perigo);
+  outline: 2px solid color-mix(in srgb, var(--perigo) 35%, transparent);
+  outline-offset: 0;
+}
+
+/* Avisos rápidos (salvo / excluído / erro) */
+.avisos {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+}
+
+.aviso {
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: .875rem;
+  font-weight: 600;
+  box-shadow: var(--sombra);
+}
+
+.aviso-sucesso {
+  background: var(--verde);
+}
+
+.aviso-erro {
+  background: var(--perigo);
+}
+
 .rodape {
   display: flex;
   justify-content: flex-end;
@@ -668,6 +732,10 @@ a.cartao:hover {
   --verde-escuro: #000;
 }
 
+.alto-contraste .aviso-sucesso {
+  color: #000;
+}
+
 .alto-contraste button {
   color: #000;
 }
@@ -1002,4 +1070,16 @@ a.cartao:hover {
   .login .ilustracao {
     width: 120px;
   }
+}
+
+/* Busca "Histórico de serviços do cliente" (dashboard) */
+.busca-historico {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.busca-historico input {
+  flex: 1 1 220px;
+  min-width: 0;
 }

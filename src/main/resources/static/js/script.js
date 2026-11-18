@@ -7,6 +7,11 @@
 // =====================================================================
 
 // ---------- Configuração das entidades (campos = colunas do banco) ----------
+// Extras de cada campo:
+//   obrigatorio      -> não pode ficar vazio (marcado com * na tela)
+//   formato          -> máscara e/ou validação (cpf, cnpj, cep, telefone, email, nascimento, senha)
+//   minimo           -> menor número aceito (campos numéricos)
+// Regras que envolvem mais de um campo ficam em "regras" da entidade.
 const campo = (nome, rotulo, tipo = 'text', extras = {}) => ({ nome, rotulo, tipo, ...extras });
 
 const STATUS_OS = ['ABERTA', 'EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA'];       // banco: 1, 2, 3, 4
@@ -14,10 +19,21 @@ const STATUS_CONTRATO = ['ATIVO', 'INATIVO'];                                  /
 const ESTADOS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB',
   'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'];
 
+// Listas iguais aos valores gravados no banco (sem acento, como nos scripts da pasta sql).
+// O texto bonito que aparece na tela vem de ROTULOS_OPCOES (mais abaixo).
+// Valores antigos que não estão na lista continuam aparecendo ao editar.
+const TIPOS_OS = ['Manutencao Preventiva', 'Manutencao Corretiva', 'Instalacao', 'Limpeza', 'Recarga de Gas'];
+const TIPOS_CONTRATO = ['Manutencao Preventiva', 'Manutencao Corretiva', 'Instalacao', 'Locacao de Equipamentos', 'PMOC'];
+const FORMAS_PAGAMENTO = ['PIX', 'Cartao de Credito', 'Cartao de Debito', 'Dinheiro', 'Boleto', 'Transferencia'];
+
+const dataFimAntesDoInicio = (r) =>
+  (r.dataInicio && r.dataFim && r.dataFim < r.dataInicio
+    ? { dataFim: 'A data de fim não pode ser anterior à data de início.' } : {});
+
 // Campos de endereço/contato comuns a PESSOAS (todos NOT NULL, menos e-mail).
 const camposDePessoa = () => [
-  campo('telefone', 'Telefone (só números)', 'text', { obrigatorio: true, atributos: 'maxlength="15" inputmode="tel"' }),
-  campo('cep', 'CEP', 'text', { obrigatorio: true, atributos: 'maxlength="9" inputmode="numeric" placeholder="00000-000"' }),
+  campo('telefone', 'Telefone (com DDD)', 'text', { obrigatorio: true, formato: 'telefone', atributos: 'maxlength="15" inputmode="tel" placeholder="(11) 91234-5678"' }),
+  campo('cep', 'CEP', 'text', { obrigatorio: true, formato: 'cep', atributos: 'maxlength="9" inputmode="numeric" placeholder="00000-000"' }),
   campo('endereco', 'Endereço', 'text', { obrigatorio: true, atributos: 'maxlength="50"' }),
   campo('numero', 'Número', 'text', { obrigatorio: true, atributos: 'maxlength="10"' }),
   campo('cidade', 'Cidade', 'text', { obrigatorio: true, atributos: 'maxlength="50"' }),
@@ -31,12 +47,12 @@ const ENTIDADES = {
     campos: [
       campo('tipoCliente', 'Tipo de cliente', 'select', { opcoes: ['FISICA', 'JURIDICA'], obrigatorio: true, fixoNaEdicao: true }),
       campo('nome', 'Nome / Nome fantasia', 'text', { obrigatorio: true, atributos: 'maxlength="100"' }),
-      campo('cpf', 'CPF (só números)', 'text', { obrigatorio: true, somenteSe: ['tipoCliente', 'FISICA'], atributos: 'maxlength="14" inputmode="numeric"' }),
+      campo('cpf', 'CPF', 'text', { obrigatorio: true, formato: 'cpf', somenteSe: ['tipoCliente', 'FISICA'], atributos: 'maxlength="14" inputmode="numeric" placeholder="000.000.000-00"' }),
       campo('rg', 'RG', 'text', { somenteSe: ['tipoCliente', 'FISICA'], atributos: 'maxlength="15"' }),
-      campo('dataNascimento', 'Data de nascimento', 'date', { obrigatorio: true, somenteSe: ['tipoCliente', 'FISICA'] }),
-      campo('cnpj', 'CNPJ (só números)', 'text', { obrigatorio: true, somenteSe: ['tipoCliente', 'JURIDICA'], atributos: 'maxlength="18" inputmode="numeric"' }),
+      campo('dataNascimento', 'Data de nascimento', 'date', { obrigatorio: true, formato: 'nascimento', somenteSe: ['tipoCliente', 'FISICA'] }),
+      campo('cnpj', 'CNPJ', 'text', { obrigatorio: true, formato: 'cnpj', somenteSe: ['tipoCliente', 'JURIDICA'], atributos: 'maxlength="18" inputmode="numeric" placeholder="00.000.000/0000-00"' }),
       campo('razaoSocial', 'Razão social', 'text', { obrigatorio: true, somenteSe: ['tipoCliente', 'JURIDICA'], atributos: 'maxlength="100"' }),
-      campo('email', 'E-mail', 'email', { atributos: 'maxlength="150"' }),
+      campo('email', 'E-mail', 'email', { formato: 'email', atributos: 'maxlength="150" placeholder="nome@empresa.com"' }),
       ...camposDePessoa(),
     ],
   },
@@ -45,13 +61,13 @@ const ENTIDADES = {
     colunas: ['nome', 'email', 'administrador', 'pagamento'],
     campos: [
       campo('nome', 'Nome', 'text', { obrigatorio: true, atributos: 'maxlength="100"' }),
-      campo('email', 'E-mail (usado no login)', 'email', { obrigatorio: true, atributos: 'maxlength="150"' }),
-      campo('senha', 'Senha (em branco = manter a atual)', 'password', { obrigatorioAoCriar: true, atributos: 'autocomplete="new-password"' }),
+      campo('email', 'E-mail (usado no login)', 'email', { obrigatorio: true, formato: 'email', atributos: 'maxlength="150" placeholder="nome@empresa.com"' }),
+      campo('senha', 'Senha (em branco = manter a atual)', 'password', { obrigatorioAoCriar: true, formato: 'senha', atributos: 'autocomplete="new-password"' }),
       campo('administrador', 'Administrador?', 'select', { opcoes: ['NAO', 'SIM'], obrigatorio: true }),
-      campo('pagamento', 'Pagamento (R$)', 'number', { moeda: true, obrigatorio: true }),
-      campo('cpf', 'CPF (só números)', 'text', { obrigatorio: true, atributos: 'maxlength="14" inputmode="numeric"' }),
+      campo('pagamento', 'Pagamento (R$)', 'number', { moeda: true, obrigatorio: true, minimo: 0, atributos: 'min="0"' }),
+      campo('cpf', 'CPF', 'text', { obrigatorio: true, formato: 'cpf', atributos: 'maxlength="14" inputmode="numeric" placeholder="000.000.000-00"' }),
       campo('rg', 'RG', 'text', { atributos: 'maxlength="15"' }),
-      campo('dataNascimento', 'Data de nascimento', 'date', { obrigatorio: true }),
+      campo('dataNascimento', 'Data de nascimento', 'date', { obrigatorio: true, formato: 'nascimento' }),
       ...camposDePessoa(),
     ],
   },
@@ -61,13 +77,13 @@ const ENTIDADES = {
     campos: [
       campo('clienteId', 'Cliente', 'select', { origem: 'clientes', obrigatorio: true }),
       campo('descricao', 'Descrição', 'text', { obrigatorio: true, atributos: 'maxlength="500"' }),
-      campo('tipoContrato', 'Tipo de contrato', 'select', {
-        opcoes: ['Manutenção Mensal', 'Trimestral', 'Semestral', 'Anual', 'Instalação e Manutenção'], obrigatorio: true }),
+      campo('tipoContrato', 'Tipo de contrato', 'select', { opcoes: TIPOS_CONTRATO, obrigatorio: true }),
       campo('status', 'Situação', 'select', { opcoes: STATUS_CONTRATO, obrigatorio: true }),
       campo('dataInicio', 'Data de início', 'date', { obrigatorio: true }),
       campo('dataFim', 'Data de fim', 'date', { obrigatorio: true }),
       campo('obs', 'Observações', 'textarea', { atributos: 'maxlength="500"' }),
     ],
+    regras: dataFimAntesDoInicio,
   },
   equipamentos: {
     titulo: 'Equipamentos (catálogo)', recurso: 'equipamentos',
@@ -76,7 +92,7 @@ const ENTIDADES = {
     campos: [
       campo('marca', 'Marca', 'text', { obrigatorio: true, atributos: 'maxlength="50"' }),
       campo('modelo', 'Modelo', 'text', { obrigatorio: true, atributos: 'maxlength="100"' }),
-      campo('btus', 'BTUs', 'number', { obrigatorio: true, atributos: 'min="1" step="1"' }),
+      campo('btus', 'BTUs', 'number', { obrigatorio: true, minimo: 1, inteiro: true, atributos: 'min="1" step="1"' }),
       campo('obs', 'Observações', 'textarea', { atributos: 'maxlength="300"' }),
     ],
   },
@@ -86,7 +102,7 @@ const ENTIDADES = {
     campos: [
       campo('contratoId', 'Contrato', 'select', { origem: 'contratos', obrigatorio: true, fixoNaEdicao: true }),
       campo('equipamentoId', 'Equipamento', 'select', { origem: 'equipamentos', obrigatorio: true, fixoNaEdicao: true }),
-      campo('qtd', 'Quantidade', 'number', { obrigatorio: true, atributos: 'min="1" step="1"' }),
+      campo('qtd', 'Quantidade', 'number', { obrigatorio: true, minimo: 1, inteiro: true, atributos: 'min="1" step="1"' }),
     ],
   },
   ordensServico: {
@@ -98,15 +114,27 @@ const ENTIDADES = {
       campo('clienteId', 'Cliente', 'select', { origem: 'clientes', obrigatorio: true }),
       campo('contratoId', 'Contrato (opcional)', 'select', { origem: 'contratos' }),
       campo('funcionarioId', 'Funcionário responsável', 'select', { origem: 'funcionarios' }),
-      campo('tipoOs', 'Tipo da OS', 'select', { opcoes: ['Preventiva', 'Corretiva', 'Instalação', 'Limpeza'], obrigatorio: true }),
+      campo('tipoOs', 'Tipo da OS', 'select', { opcoes: TIPOS_OS, obrigatorio: true }),
       campo('status', 'Status', 'select', { opcoes: STATUS_OS, obrigatorio: true }),
-      campo('valor', 'Valor (R$)', 'number', { moeda: true, atributos: 'min="0"' }),
+      campo('valor', 'Valor (R$)', 'number', { moeda: true, minimo: 0, atributos: 'min="0"' }),
       campo('dataAbertura', 'Data de abertura', 'date', { obrigatorio: true }),
-      campo('dataExecucao', 'Data de execução', 'date'),
+      campo('dataExecucao', 'Data de execução', 'date', { dica: 'Obrigatória quando a OS estiver concluída.' }),
       campo('descricaoProblema', 'Descrição do problema', 'textarea', { obrigatorio: true, atributos: 'maxlength="500"' }),
-      campo('descricaoExecutado', 'Descrição do executado', 'textarea', { atributos: 'maxlength="500"' }),
+      campo('descricaoExecutado', 'Descrição do executado', 'textarea', { dica: 'Obrigatória quando a OS estiver concluída.', atributos: 'maxlength="500"' }),
       campo('obs', 'Observações', 'textarea', { atributos: 'maxlength="500"' }),
     ],
+    regras: (r) => {
+      const erros = {};
+      if (r.dataAbertura && r.dataExecucao && r.dataExecucao < r.dataAbertura) {
+        erros.dataExecucao = 'A data de execução não pode ser anterior à data de abertura.';
+      }
+      if (r.status === 'CONCLUIDA') {
+        if (!r.dataExecucao) erros.dataExecucao = 'Para concluir a OS, informe a data de execução.';
+        if (r.valor === undefined) erros.valor = 'Para concluir a OS, informe o valor.';
+        if (!r.descricaoExecutado) erros.descricaoExecutado = 'Para concluir a OS, descreva o que foi feito.';
+      }
+      return erros;
+    },
   },
   servicosRealizados: {
     titulo: 'Serviços realizados em cada OS', recurso: 'servicosRealizados',
@@ -114,22 +142,28 @@ const ENTIDADES = {
     campos: [
       campo('osId', 'Ordem de serviço', 'select', { origem: 'ordensServico', obrigatorio: true, fixoNaEdicao: true }),
       campo('servicoId', 'Serviço', 'select', { origem: 'servicos', obrigatorio: true, fixoNaEdicao: true }),
-      campo('qtd', 'Quantidade', 'number', { obrigatorio: true, atributos: 'min="1" step="1"' }),
-      campo('valor', 'Valor unitário (R$)', 'number', { moeda: true, obrigatorio: true, atributos: 'min="0"' }),
-      campo('desconto', 'Desconto (R$)', 'number', { moeda: true, atributos: 'min="0"' }),
-      campo('formaPagamento', 'Forma de pagamento', 'select', { opcoes: ['PIX', 'Cartão', 'Dinheiro', 'Boleto'], obrigatorio: true }),
+      campo('qtd', 'Quantidade', 'number', { obrigatorio: true, minimo: 1, inteiro: true, atributos: 'min="1" step="1"' }),
+      campo('valor', 'Valor unitário (R$)', 'number', { moeda: true, obrigatorio: true, minimo: 0, atributos: 'min="0"' }),
+      campo('desconto', 'Desconto (R$)', 'number', { moeda: true, minimo: 0, atributos: 'min="0"' }),
+      campo('formaPagamento', 'Forma de pagamento', 'select', { opcoes: FORMAS_PAGAMENTO, obrigatorio: true }),
       campo('obs', 'Observações', 'textarea', { atributos: 'maxlength="500"' }),
     ],
+    regras: (r) => {
+      const total = (r.qtd ?? 0) * (r.valor ?? 0);
+      return r.qtd !== undefined && r.valor !== undefined && (r.desconto ?? 0) > total + 0.001
+        ? { desconto: `O desconto não pode ser maior que o total do item (${formatarMoeda(total)}).` } : {};
+    },
   },
   servicos: {
     titulo: 'Serviços (catálogo)', recurso: 'servicos', campoRotulo: 'descricao',
     colunas: ['descricao', 'valorServico', 'dataInicio', 'dataFim'],
     campos: [
       campo('descricao', 'Descrição', 'text', { obrigatorio: true, atributos: 'maxlength="500"' }),
-      campo('valorServico', 'Valor do serviço (R$)', 'number', { moeda: true, obrigatorio: true, atributos: 'min="0"' }),
+      campo('valorServico', 'Valor do serviço (R$)', 'number', { moeda: true, obrigatorio: true, minimo: 0, atributos: 'min="0"' }),
       campo('dataInicio', 'Data de início', 'date', { obrigatorio: true }),
       campo('dataFim', 'Data de fim', 'date', { obrigatorio: true }),
     ],
+    regras: dataFimAntesDoInicio,
   },
 };
 
@@ -144,15 +178,15 @@ const CAMPOS_RESTRITOS_PARA_FUNCIONARIOS = {
 };
 
 // ---------- Comunicação com o back-end ----------
+// O back-end já devolve mensagens em português (GlobalExceptionHandler).
+// Aqui só cobrimos respostas sem texto útil (ex.: erro de proxy, página HTML de erro).
 function mensagemAmigavel(status, mensagem) {
-  if (status === 409) {
-    const tabela = /tabela "dbo\.(\w+)"/i.exec(mensagem)?.[1];
-    if (/DELETE/i.test(mensagem) && tabela) {
-      return `Não é possível excluir: existem registros ligados em ${tabela}. Exclua ou desvincule esses registros primeiro.`;
-    }
-    if (/UNIQUE|duplicad/i.test(mensagem)) return 'Já existe um cadastro com esse CPF/CNPJ.';
-  }
-  return mensagem;
+  const textoUtil = typeof mensagem === 'string' && mensagem.length < 300 && !/<html|Exception|SQL \[/i.test(mensagem);
+  if (textoUtil) return mensagem;
+  if (status === 403) return 'Você não tem permissão para fazer isso.';
+  if (status === 404) return 'O registro não foi encontrado. Atualize a página e tente de novo.';
+  if (status >= 500) return 'Ocorreu um erro no servidor. Tente novamente; se continuar, avise o administrador.';
+  return 'Não foi possível concluir a operação. Confira os dados e tente novamente.';
 }
 
 async function requisitar(caminho, metodo = 'GET', corpo) {
@@ -333,6 +367,22 @@ const Repositorio = {
 
   // Tabela "Contratos vencendo": VIEW VW_CONTRATOS_VENCENDO_30_DIAS.
   contratosVencendo: () => requisitar('/dashboard/contratos-vencendo'),
+
+  // Tabela "OS: cliente e prestador": VIEW VW_ORDENS_SERVICO_PESSOAS (filtrada pela data de abertura).
+  ordensServicoPessoas: (inicio) =>
+    requisitar(`/dashboard/ordens-servico-pessoas${inicio ? `?inicio=${inicio}` : ''}`),
+
+  // Tabela "Resumo por prestador": FUNCTION de variável tipo tabela FC_RESUMO_PRESTADORES(@inicio, @fim).
+  resumoPrestadores(inicio, fim) {
+    const parametros = new URLSearchParams();
+    if (inicio) parametros.set('inicio', inicio);
+    if (fim) parametros.set('fim', fim);
+    const consulta = parametros.toString();
+    return requisitar(`/dashboard/resumo-prestadores${consulta ? `?${consulta}` : ''}`);
+  },
+
+  // Busca "Histórico de serviços do cliente": FUNCTION de tabela FC_HISTORICO_SERVICOS(@NOME).
+  historicoCliente: (nome) => requisitar(`/dashboard/historico-cliente?nome=${encodeURIComponent(nome)}`),
 };
 
 // ---------- Menu lateral ----------
@@ -363,12 +413,21 @@ function montarMenu() {
 const escapar = (texto) => String(texto).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const formatarMoeda = (valor) => Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const formatarData = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR');
+// Texto de tela para valores gravados sem acento no banco.
+const ROTULOS_OPCOES = {
+  'Manutencao Preventiva': 'Manutenção preventiva', 'Manutencao Corretiva': 'Manutenção corretiva',
+  Instalacao: 'Instalação', 'Recarga de Gas': 'Recarga de gás', 'Locacao de Equipamentos': 'Locação de equipamentos',
+  PMOC: 'PMOC', PIX: 'PIX', 'Cartao de Credito': 'Cartão de crédito', 'Cartao de Debito': 'Cartão de débito',
+  Transferencia: 'Transferência', NAO: 'Não', SIM: 'Sim',
+};
 // Códigos em MAIÚSCULAS (ex.: EM_ANDAMENTO) viram "em andamento"; textos normais ficam como estão.
-const formatarOpcao = (texto) => (/^[A-Z_]+$/.test(texto) ? texto.replace(/_/g, ' ').toLowerCase() : texto);
+const formatarOpcao = (texto) => ROTULOS_OPCOES[texto]
+  ?? (/^[A-Z_]+$/.test(texto) ? texto.replace(/_/g, ' ').toLowerCase() : texto);
 
 function formatarCelula(definicao, valor, rotulos) {
   if (valor === undefined || valor === null || valor === '') return '-';
   if (definicao.origem) return rotulos[definicao.nome].get(valor) ?? `#${valor}`;
+  if (MASCARAS[definicao.formato]) return MASCARAS[definicao.formato](somenteDigitos(valor));
   if (definicao.moeda) return formatarMoeda(valor);
   if (definicao.tipo === 'date') return formatarData(valor);
   if (definicao.opcoes) return formatarOpcao(String(valor));
@@ -392,19 +451,179 @@ function celulaDaTabela(definicao, valor, rotulos) {
   return definicao.nome === 'status' && valor ? `<span class="selo selo-${valor}">${texto}</span>` : texto;
 }
 
+// ---------- Máscaras (SÓ NA TELA) ----------
+// O banco guarda CPF/CNPJ/CEP/telefone apenas com dígitos. A máscara só formata
+// o que o usuário vê; antes de enviar, a camada API (dadosDePessoa / clientes.salvar /
+// funcionarios) passa tudo por somenteDigitos(), que remove ".", "-", "/", "(" e ")".
+function aplicarPadrao(digitos, padrao) {
+  let saida = '';
+  let i = 0;
+  for (const caractere of padrao) {
+    if (i >= digitos.length) break;
+    saida += caractere === '0' ? digitos[i++] : caractere;
+  }
+  return saida;
+}
+
+const MASCARAS = {
+  cpf: (d) => aplicarPadrao(d.slice(0, 11), '000.000.000-00'),
+  cnpj: (d) => aplicarPadrao(d.slice(0, 14), '00.000.000/0000-00'),
+  cep: (d) => aplicarPadrao(d.slice(0, 8), '00000-000'),
+  telefone: (d) => aplicarPadrao(d.slice(0, 11), d.length > 10 ? '(00) 00000-0000' : '(00) 0000-0000'),
+};
+
+// ---------- Validações ----------
+function cpfValido(cpf) {
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  const digito = (n) => {
+    let soma = 0;
+    for (let i = 0; i < n; i++) soma += Number(cpf[i]) * (n + 1 - i);
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+  return digito(9) === Number(cpf[9]) && digito(10) === Number(cpf[10]);
+}
+
+function cnpjValido(cnpj) {
+  if (!/^\d{14}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) return false;
+  const digito = (n) => {
+    const pesos = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const soma = pesos.reduce((total, peso, i) => total + Number(cnpj[i]) * peso, 0);
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  return digito(12) === Number(cnpj[12]) && digito(13) === Number(cnpj[13]);
+}
+
+const hojeIso = () => new Date().toLocaleDateString('sv-SE');
+
+// Cada validador recebe o valor digitado e o valor que já estava gravado.
+// CPF/CNPJ: os dígitos verificadores só são conferidos se o número foi ALTERADO,
+// para não travar a edição de cadastros antigos/de teste (os inserts usam números fictícios).
+const VALIDADORES = {
+  cpf: (valor, original) => {
+    const d = somenteDigitos(valor);
+    if (d.length !== 11) return 'O CPF deve ter 11 dígitos.';
+    if (d !== somenteDigitos(original ?? '') && !cpfValido(d)) return 'CPF inválido. Confira os números digitados.';
+    return '';
+  },
+  cnpj: (valor, original) => {
+    const d = somenteDigitos(valor);
+    if (d.length !== 14) return 'O CNPJ deve ter 14 dígitos.';
+    if (d !== somenteDigitos(original ?? '') && !cnpjValido(d)) return 'CNPJ inválido. Confira os números digitados.';
+    return '';
+  },
+  cep: (valor) => (somenteDigitos(valor).length === 8 ? '' : 'O CEP deve ter 8 dígitos.'),
+  telefone: (valor) => ([10, 11].includes(somenteDigitos(valor).length)
+    ? '' : 'Informe o telefone com DDD (10 ou 11 dígitos).'),
+  email: (valor) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor) ? '' : 'Digite um e-mail válido, como nome@empresa.com.'),
+  nascimento: (valor) => {
+    if (valor > hojeIso()) return 'A data de nascimento não pode estar no futuro.';
+    if (valor < '1900-01-01') return 'Confira o ano da data de nascimento.';
+    return '';
+  },
+  senha: (valor) => (valor.length >= 6 ? '' : 'A senha deve ter pelo menos 6 caracteres.'),
+};
+
+// "Valor (R$)" -> "Valor"; "Contrato (opcional)" -> "Contrato".
+const nomeDoCampo = (definicao) => definicao.rotulo.replace(/\s*\(.*\)\s*$/, '').replace(/\?$/, '');
+
+// Devolve { nomeDoCampo: 'mensagem' } com todos os problemas encontrados.
+function validarFormulario(entidade, formulario, originais, registro) {
+  const erros = {};
+  for (const definicao of entidade.campos.filter((c) => c.tipo !== 'hidden')) {
+    const elemento = formulario.elements[definicao.nome];
+    // Campo escondido por condição (ex.: CNPJ para pessoa física) ou fixo na edição: não valida.
+    if (!elemento || elemento.disabled) continue;
+    const valor = elemento.value.trim();
+    const nome = nomeDoCampo(definicao);
+
+    if (definicao.tipo === 'number' && elemento.validity?.badInput) {
+      erros[definicao.nome] = `Digite um número válido em "${nome}".`;
+      continue;
+    }
+    if (!valor) {
+      if (elemento.required) {
+        erros[definicao.nome] = definicao.tipo === 'select' ? `Escolha uma opção em "${nome}".` : `Preencha o campo "${nome}".`;
+      }
+      continue;
+    }
+    if (definicao.tipo === 'number') {
+      const numero = Number(valor);
+      if (!Number.isFinite(numero)) erros[definicao.nome] = `Digite um número válido em "${nome}".`;
+      else if (definicao.inteiro && !Number.isInteger(numero)) erros[definicao.nome] = `"${nome}" deve ser um número inteiro.`;
+      else if (definicao.minimo !== undefined && numero < definicao.minimo) {
+        erros[definicao.nome] = definicao.minimo === 0 ? `"${nome}" não pode ser negativo.` : `"${nome}" deve ser no mínimo ${definicao.minimo}.`;
+      }
+      continue;
+    }
+    const mensagem = VALIDADORES[definicao.formato]?.(valor, originais[definicao.nome]);
+    if (mensagem) erros[definicao.nome] = mensagem;
+  }
+  // Regras entre campos só para campos que ainda não têm erro.
+  for (const [nomeCampo, mensagem] of Object.entries(entidade.regras?.(registro) ?? {})) {
+    erros[nomeCampo] ??= mensagem;
+  }
+  return erros;
+}
+
+function limparErroDoCampo(elemento) {
+  elemento.removeAttribute('aria-invalid');
+  const aviso = elemento.closest('label')?.querySelector('[data-erro-campo]');
+  if (aviso) aviso.textContent = '';
+}
+
+// Mostra cada mensagem embaixo do campo, marca em vermelho e leva o cursor ao primeiro erro.
+function mostrarErrosNoFormulario(formulario, erros) {
+  formulario.querySelectorAll('input, select, textarea').forEach(limparErroDoCampo);
+  let primeiro = null;
+  for (const [nome, mensagem] of Object.entries(erros)) {
+    const elemento = formulario.elements[nome];
+    if (!elemento?.closest) continue;
+    elemento.setAttribute('aria-invalid', 'true');
+    const aviso = elemento.closest('label')?.querySelector('[data-erro-campo]');
+    if (aviso) aviso.textContent = mensagem;
+    primeiro ??= elemento;
+  }
+  primeiro?.focus();
+  return primeiro === null;
+}
+
+// ---------- Avisos rápidos (sucesso / erro) ----------
+function mostrarAviso(texto, tipo = 'sucesso') {
+  let area = document.getElementById('avisos');
+  if (!area) {
+    area = document.createElement('div');
+    area.id = 'avisos';
+    area.className = 'avisos';
+    area.setAttribute('role', 'status');
+    area.setAttribute('aria-live', 'polite');
+    document.body.append(area);
+  }
+  const aviso = document.createElement('div');
+  aviso.className = `aviso aviso-${tipo}`;
+  aviso.textContent = texto;
+  area.append(aviso);
+  setTimeout(() => aviso.remove(), 4000);
+}
+
 // ---------- Construção da tela de CRUD ----------
 function criarHtmlDoCampo(definicao) {
   if (definicao.tipo === 'hidden') return '';
   const condicao = definicao.somenteSe ? `data-se-campo="${definicao.somenteSe[0]}" data-se-valor="${definicao.somenteSe[1]}"` : '';
   const obrigatorio = definicao.obrigatorio ? 'required' : '';
   const extras = definicao.atributos ?? '';
+  const mascara = MASCARAS[definicao.formato] ? `data-mascara="${definicao.formato}"` : '';
   const classe = definicao.tipo === 'textarea' ? 'linha-inteira' : '';
   const entrada = definicao.tipo === 'select'
     ? `<select name="${definicao.nome}" ${obrigatorio}></select>`
     : definicao.tipo === 'textarea'
       ? `<textarea name="${definicao.nome}" rows="2" ${obrigatorio} ${extras}></textarea>`
-      : `<input name="${definicao.nome}" type="${definicao.tipo}" ${definicao.tipo === 'number' && !extras.includes('step') ? 'step="0.01"' : ''} ${obrigatorio} ${extras}>`;
-  return `<label class="${classe}" ${condicao}>${definicao.rotulo}${entrada}</label>`;
+      : `<input name="${definicao.nome}" type="${definicao.tipo}" ${definicao.tipo === 'number' && !extras.includes('step') ? 'step="0.01"' : ''} ${obrigatorio} ${mascara} ${extras}>`;
+  const asterisco = definicao.obrigatorio ? ' <span class="obrigatorio" aria-hidden="true">*</span>' : '';
+  const dica = definicao.dica ? `<small class="dica-campo">${definicao.dica}</small>` : '';
+  return `<label class="${classe}" ${condicao}><span>${definicao.rotulo}${asterisco}</span>${entrada}${dica}`
+    + '<small class="erro-campo" data-erro-campo></small></label>';
 }
 
 function criarEsqueleto(secao, entidade) {
@@ -418,8 +637,9 @@ function criarEsqueleto(secao, entidade) {
     </div>
     <p class="erro" data-erro-secao role="alert"></p>
     <div class="tabela-rolagem"><table><thead></thead><tbody></tbody></table></div>
-    ${administrador ? `<dialog><form class="formulario">
+    ${administrador ? `<dialog><form class="formulario" novalidate>
       <input type="hidden" name="id">
+      <p class="nota-obrigatorio linha-inteira">Campos com <span class="obrigatorio">*</span> são obrigatórios.</p>
       ${entidade.campos.map(criarHtmlDoCampo).join('')}
       <p class="erro linha-inteira" data-erro-form role="alert"></p>
       <div class="rodape">
@@ -445,6 +665,8 @@ function iniciarTelaCrud(secao) {
     .filter((nome) => !camposRestritos.includes(nome))
     .map((nome) => entidade.campos.find((c) => c.nome === nome));
   let registrosNaTela = [];
+  let originais = {};      // valores gravados do registro em edição (para comparar CPF/CNPJ)
+  let alterado = false;    // o usuário mexeu no formulário? (pergunta antes de descartar)
 
   secao.querySelector('thead').innerHTML =
     `<tr>${colunas.map((c) => `<th>${c.rotulo}</th>`).join('')}${administrador ? '<th>Ações</th>' : ''}</tr>`;
@@ -505,16 +727,20 @@ function iniciarTelaCrud(secao) {
     }
     formulario.reset();
     erroFormulario.textContent = '';
+    mostrarErrosNoFormulario(formulario, {});
     const editando = registro.id !== undefined;
+    originais = { ...registro };
+    alterado = false;
     formulario.elements.id.value = registro.id ?? '';
     for (const c of entidade.campos.filter((def) => def.tipo !== 'hidden')) {
       const elemento = formulario.elements[c.nome];
       const valor = registro[c.nome] ?? '';
       // Valor gravado que não está na lista de opções (ex.: tipo digitado por outro sistema): mantém.
       if (c.tipo === 'select' && valor !== '' && ![...elemento.options].some((o) => o.value === String(valor))) {
-        elemento.add(new Option(String(valor), String(valor)));
+        elemento.add(new Option(formatarOpcao(String(valor)), String(valor)));
       }
-      elemento.value = valor;
+      // Dado do banco (só dígitos) aparece já formatado: 12345678901 -> 123.456.789-01.
+      elemento.value = MASCARAS[c.formato] && valor !== '' ? MASCARAS[c.formato](somenteDigitos(valor)) : valor;
       const fixo = editando && c.fixoNaEdicao;
       elemento.disabled = fixo;
       elemento.toggleAttribute('data-fixo', fixo);
@@ -522,6 +748,11 @@ function iniciarTelaCrud(secao) {
     }
     atualizarCamposCondicionais();
     janela.showModal();
+  }
+
+  // Fechar com alterações não salvas: pergunta antes (botão Cancelar ou tecla Esc).
+  function podeFechar() {
+    return !alterado || confirm('Você tem alterações não salvas. Deseja descartá-las?');
   }
 
   function lerFormulario() {
@@ -539,22 +770,45 @@ function iniciarTelaCrud(secao) {
 
   if (administrador) {
     secao.querySelector('[data-novo]').addEventListener('click', () => abrirFormulario());
-    secao.querySelector('[data-cancelar]').addEventListener('click', () => janela.close());
+    secao.querySelector('[data-cancelar]').addEventListener('click', () => { if (podeFechar()) janela.close(); });
+    janela.addEventListener('cancel', (evento) => { if (!podeFechar()) evento.preventDefault(); });
     formulario.addEventListener('change', atualizarCamposCondicionais);
+
+    // Enquanto digita: aplica a máscara e apaga a mensagem de erro daquele campo.
+    formulario.addEventListener('input', (evento) => {
+      const elemento = evento.target;
+      alterado = true;
+      if (elemento.dataset.mascara) elemento.value = MASCARAS[elemento.dataset.mascara](somenteDigitos(elemento.value));
+      limparErroDoCampo(elemento);
+    });
 
     formulario.addEventListener('submit', async (evento) => {
       evento.preventDefault();
-      const botao = formulario.querySelector('button[type=submit]');
-      botao.disabled = true;
       erroFormulario.textContent = '';
+      const registro = lerFormulario();
+      const erros = validarFormulario(entidade, formulario, originais, registro);
+      if (!mostrarErrosNoFormulario(formulario, erros)) {
+        const quantidade = Object.keys(erros).length;
+        erroFormulario.textContent = quantidade === 1
+          ? 'Corrija o campo destacado em vermelho.' : `Corrija os ${quantidade} campos destacados em vermelho.`;
+        return;
+      }
+
+      const botao = formulario.querySelector('button[type=submit]');
+      const textoBotao = botao.textContent;
+      botao.disabled = true;
+      botao.textContent = 'Salvando…';
       try {
-        await Repositorio.salvar(entidade.recurso, lerFormulario());
+        await Repositorio.salvar(entidade.recurso, registro);
+        alterado = false;
         janela.close();
+        mostrarAviso(registro.id ? 'Alterações salvas com sucesso.' : 'Cadastro realizado com sucesso.');
         await atualizarTabela();
       } catch (erro) {
         erroFormulario.textContent = erro.message;   // mantém a janela aberta para corrigir
       } finally {
         botao.disabled = false;
+        botao.textContent = textoBotao;
       }
     });
   }
@@ -566,13 +820,19 @@ function iniciarTelaCrud(secao) {
     const registro = registrosNaTela.find((r) => String(r.id) === (editar ?? excluir));
     if (!registro) return;
     if (editar) abrirFormulario(registro);
-    if (excluir && confirm('Deseja realmente excluir este registro?')) {
-      try {
-        await Repositorio.excluir(entidade.recurso, registro);
-        await atualizarTabela();
-      } catch (erro) {
-        erroSecao.textContent = erro.message;
-      }
+    if (!excluir) return;
+    // Confirmação dizendo O QUE vai ser excluído.
+    const nome = rotuloDe(entidade, registro);
+    const pergunta = `${nome ? `Excluir "${nome}"?` : 'Excluir este item?'}\n\nEssa ação não pode ser desfeita.`;
+    if (!confirm(pergunta)) return;
+    erroSecao.textContent = '';
+    try {
+      await Repositorio.excluir(entidade.recurso, registro);
+      mostrarAviso(nome ? `"${nome}" foi excluído.` : 'Item excluído.');
+      await atualizarTabela();
+    } catch (erro) {
+      erroSecao.textContent = erro.message;
+      mostrarAviso(erro.message, 'erro');
     }
   });
 
@@ -686,8 +946,12 @@ async function montarDashboard() {
     // Cards e contratos vencendo: calculados NO BANCO (views + functions).
     let cartoes;
     let vencendo;
+    let osPessoas;
+    let resumoPrestadores;
     try {
-      [cartoes, vencendo] = await Promise.all([Repositorio.dashboardCartoes(inicio, fim), Repositorio.contratosVencendo()]);
+      [cartoes, vencendo, osPessoas, resumoPrestadores] = await Promise.all([
+        Repositorio.dashboardCartoes(inicio, fim), Repositorio.contratosVencendo(),
+        Repositorio.ordensServicoPessoas(inicio), Repositorio.resumoPrestadores(inicio, fim)]);
       mensagem.textContent = '';
     } catch (erro) {
       mensagem.textContent = `Não foi possível carregar os indicadores: ${erro.message}`;
@@ -749,7 +1013,53 @@ async function montarDashboard() {
     desenharTabelaResumo('contratosVencendo', ['Contrato', 'Cliente', 'Termina em', 'Dias restantes'],
       vencendo.map((c) => [escapar(c.descricao), escapar(c.nomeCliente), formatarData(c.dataFim), c.diasRestantes]),
       'Nenhum contrato vence nos próximos 30 dias.');
+
+    // A view devolve o status com espaço ("EM ANDAMENTO"); o selo usa EM_ANDAMENTO.
+    desenharTabelaResumo('osPessoas',
+      ['OS', 'Cliente', 'Tipo', 'Documento', 'Tipo de OS', 'Status', 'Abertura', 'Prestador', 'Valor'],
+      osPessoas.slice(0, 10).map((o) => {
+        const status = (o.status || '').replace(/ /g, '_');
+        return [
+          o.codOs, escapar(o.nomeCliente), formatarOpcao(o.tipoPessoa), escapar(o.documento ?? '-'),
+          escapar(o.tipoOs), `<span class="selo selo-${status}">${formatarOpcao(status)}</span>`,
+          o.dataAbertura ? formatarData(o.dataAbertura) : '-', escapar(o.nomePrestador ?? '-'),
+          o.valor ? formatarMoeda(o.valor) : '-',
+        ];
+      }),
+      'Nenhuma OS no período.');
+
+    desenharTabelaResumo('resumoPrestadores',
+      ['Prestador', 'OS concluídas', 'Faturamento'],
+      resumoPrestadores.map((p) => [escapar(p.nomePrestador), p.qtdConcluidas, formatarMoeda(p.faturamento)]),
+      'Nenhuma OS concluída no período.');
   }
+
+  // Histórico do cliente: busca sob demanda (não depende do período).
+  const formHistorico = document.getElementById('formHistorico');
+  formHistorico?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const nome = document.getElementById('nomeHistorico').value.trim();
+    const mensagemHistorico = document.getElementById('mensagemHistorico');
+    mensagemHistorico.textContent = '';
+    try {
+      const historico = await Repositorio.historicoCliente(nome);
+      desenharTabelaResumo('historicoCliente',
+        ['OS', 'Cliente', 'Cidade', 'Documento', 'Tipo de OS', 'Status', 'Abertura', 'Execução', 'Valor', 'O que foi feito'],
+        historico.map((h) => {
+          const status = (h.status || '').replace(/ /g, '_');
+          return [
+            h.codOs, escapar(h.nomeCliente), escapar(h.cidade ?? '-'), escapar(h.documento ?? '-'), escapar(h.tipoOs),
+            `<span class="selo selo-${status}">${formatarOpcao(status)}</span>`,
+            h.dataAbertura ? formatarData(h.dataAbertura) : '-',
+            h.dataExecucao ? formatarData(h.dataExecucao) : '-',
+            h.valor ? formatarMoeda(h.valor) : '-', escapar(h.oQueFoiFeito ?? '-'),
+          ];
+        }),
+        `Nenhuma OS encontrada para "${escapar(nome)}".`);
+    } catch (erro) {
+      mensagemHistorico.textContent = `Não foi possível buscar o histórico: ${erro.message}`;
+    }
+  });
 
   seletor.addEventListener('change', atualizar);
   atualizar();

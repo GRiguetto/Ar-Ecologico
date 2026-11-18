@@ -34,12 +34,12 @@ public class ServicoRealizadoService {
 
     public ServicoRealizadoEntity salvaServicoRealizado(ServicoRealizadoDto dados) {
         if (dados.getOsCod() == null || dados.getServicoCod() == null) {
-            throw new RegraNegocioException("osCod e servicoCod são obrigatórios");
+            throw new RegraNegocioException("Escolha a ordem de serviço e o serviço.");
         }
         ServicoRealizadoId id = new ServicoRealizadoId(dados.getOsCod(), dados.getServicoCod());
         if (repository.existsById(id)) {
-            throw new RegraNegocioException("Serviço " + dados.getServicoCod()
-                    + " já foi lançado na OS " + dados.getOsCod() + "; use PUT/PATCH para alterar");
+            throw new RegraNegocioException("Esse serviço já foi lançado na OS " + dados.getOsCod()
+                    + ". Edite o lançamento existente em vez de cadastrar de novo.");
         }
 
         ServicoRealizadoEntity servicoRealizado = new ServicoRealizadoEntity(
@@ -123,21 +123,21 @@ public class ServicoRealizadoService {
     /** Mesmas regras dos CHECKs de SERVICOS_REALIZADOS, com mensagem clara. */
     private void validar(ServicoRealizadoEntity sr) {
         if (sr.getQtd() == null || sr.getQtd() <= 0) {
-            throw new RegraNegocioException("qtd deve ser maior que zero");
+            throw new RegraNegocioException("A quantidade deve ser maior que zero.");
         }
         if (sr.getValor() == null || sr.getValor().signum() < 0) {
-            throw new RegraNegocioException("valor é obrigatório e não pode ser negativo");
+            throw new RegraNegocioException("Informe o valor unitário (não pode ser negativo).");
         }
         if (sr.getDesconto().signum() < 0) {
-            throw new RegraNegocioException("desconto não pode ser negativo");
+            throw new RegraNegocioException("O desconto não pode ser negativo.");
         }
         BigDecimal total = sr.getValor().multiply(BigDecimal.valueOf(sr.getQtd()));
         if (sr.getDesconto().compareTo(total) > 0) {
-            throw new RegraNegocioException("desconto (" + sr.getDesconto()
-                    + ") não pode ser maior que qtd * valor (" + total + ")");
+            throw new RegraNegocioException("O desconto (R$ " + sr.getDesconto().setScale(2, java.math.RoundingMode.HALF_UP)
+                    + ") não pode ser maior que o total do item (R$ " + total.setScale(2, java.math.RoundingMode.HALF_UP) + ").");
         }
         if (sr.getFormaPagamento() == null || sr.getFormaPagamento().isBlank()) {
-            throw new RegraNegocioException("formaPagamento é obrigatória (ex.: PIX, Cartão, Dinheiro)");
+            throw new RegraNegocioException("Escolha a forma de pagamento.");
         }
     }
 }

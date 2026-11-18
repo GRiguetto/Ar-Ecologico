@@ -31,12 +31,12 @@ public class ContratoEquipamentoService {
 
     public ContratoEquipamentoEntity salvaContratoEquipamento(ContratoEquipamentoDto dados) {
         if (dados.getContratoCod() == null || dados.getEquipamentoCod() == null) {
-            throw new RegraNegocioException("contratoCod e equipamentoCod são obrigatórios");
+            throw new RegraNegocioException("Escolha o contrato e o equipamento.");
         }
         ContratoEquipamentoId id = new ContratoEquipamentoId(dados.getContratoCod(), dados.getEquipamentoCod());
         if (repository.existsById(id)) {
-            throw new RegraNegocioException("Equipamento " + dados.getEquipamentoCod()
-                    + " já está no contrato " + dados.getContratoCod() + "; use PUT/PATCH para alterar a qtd");
+            throw new RegraNegocioException("Esse equipamento já está no contrato. "
+                    + "Edite a quantidade em vez de cadastrar de novo.");
         }
 
         ContratoEquipamentoEntity contratoEquipamento = new ContratoEquipamentoEntity(
@@ -95,7 +95,7 @@ public class ContratoEquipamentoService {
 
     private void validar(ContratoEquipamentoEntity ce) {
         if (ce.getQtd() == null || ce.getQtd() <= 0) {
-            throw new RegraNegocioException("qtd deve ser maior que zero");
+            throw new RegraNegocioException("A quantidade deve ser maior que zero.");
         }
     }
 }

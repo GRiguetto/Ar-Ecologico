@@ -40,7 +40,7 @@ public class PrestadorServicoService {
      */
     public PrestadorServicoEntity salvaPessoa(PrestadorServicoDto dados) {
         if (dados.getSenha() == null || dados.getSenha().isBlank()) {
-            throw new RegraNegocioException("senha é obrigatória para o prestador de serviço");
+            throw new RegraNegocioException("Informe uma senha para o funcionário.");
         }
         Integer codPessoa = procedures.executarRetornandoCodigo("sp_CadPrestadorServico",
                 texto("nome", dados.getNome()),
@@ -131,7 +131,7 @@ public class PrestadorServicoService {
         if(dados.containsKey("senha")) {
             String senha = ValoresPatch.texto(dados.get("senha"));
             if (senha == null || senha.isBlank()) {
-                throw new RegraNegocioException("senha não pode ser vazia");
+                throw new RegraNegocioException("A senha não pode ficar em branco.");
             }
             p.setSenha(senhas.encode(senha));
         }

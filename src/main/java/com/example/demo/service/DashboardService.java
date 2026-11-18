@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.ContratoVencendoDto;
 import com.example.demo.dto.DashboardCartoesDto;
+import com.example.demo.dto.HistoricoServicoDto;
+import com.example.demo.dto.OrdemServicoPessoaDto;
+import com.example.demo.dto.ResumoPrestadorDto;
 
 /**
  * Lê os números do dashboard direto das VIEWS e FUNCTIONS do banco
@@ -62,5 +65,75 @@ public class DashboardService {
                         linha.getString("NOME_CLIENTE"),
                         linha.getObject("DATA_FIM", LocalDate.class),
                         linha.getInt("DIAS_RESTANTES")));
+    }
+
+    /**
+     * VIEW VW_ORDENS_SERVICO_PESSOAS: OS com nome/documento do cliente e o prestador.
+     * inicio pode ser null (todo o período); senão filtra pela data de abertura.
+     */
+    public List<OrdemServicoPessoaDto> ordensServicoPessoas(LocalDate inicio) {
+        return jdbc.query(
+                "SELECT COD_OS, TIPO_PESSOA, NOME_CLIENTE, DOCUMENTO, TIPO_OS, STATUS_DESCRICAO, DATA_ABERTURA, "
+                        + "VALOR_OS, DESCRICAO_PROBLEMA, O_QUE_FOI_FEITO, NOME_PRESTADOR "
+                        + "FROM VW_ORDENS_SERVICO_PESSOAS "
+                        + "WHERE (? IS NULL OR DATA_ABERTURA >= ?) "
+                        + "ORDER BY DATA_ABERTURA DESC, COD_OS DESC",
+                new Object[] { inicio, inicio }, new int[] { Types.DATE, Types.DATE },
+                (linha, n) -> new OrdemServicoPessoaDto(
+                        linha.getInt("COD_OS"),
+                        linha.getString("TIPO_PESSOA"),
+                        linha.getString("NOME_CLIENTE"),
+                        linha.getString("DOCUMENTO"),
+                        linha.getString("TIPO_OS"),
+                        linha.getString("STATUS_DESCRICAO"),
+                        linha.getObject("DATA_ABERTURA", LocalDate.class),
+                        linha.getBigDecimal("VALOR_OS"),
+                        linha.getString("DESCRICAO_PROBLEMA"),
+                        linha.getString("O_QUE_FOI_FEITO"),
+                        linha.getString("NOME_PRESTADOR")));
+    }
+
+    /**
+     * FUNCTION QUE RETORNA TABELA (inline): FC_HISTORICO_SERVICOS(@NOME).
+     * É usada como se fosse uma tabela, no FROM, passando o nome buscado.
+     */
+    public List<HistoricoServicoDto> historicoServicos(String nome) {
+        return jdbc.query(
+                "SELECT COD_OS, NOME, CIDADE, DOCUMENTO, TIPO_OS, STATUS_DESCRICAO, DATA_ABERTURA, DATA_EXECUCAO, "
+                        + "VALOR, DESCRICAO_PROBLEMA, O_QUE_FOI_FEITO "
+                        + "FROM dbo.FC_HISTORICO_SERVICOS(?) "
+                        + "ORDER BY DATA_ABERTURA DESC, COD_OS DESC",
+                new Object[] { nome }, new int[] { Types.VARCHAR },
+                (linha, n) -> new HistoricoServicoDto(
+                        linha.getInt("COD_OS"),
+                        linha.getString("NOME"),
+                        linha.getString("CIDADE"),
+                        linha.getString("DOCUMENTO"),
+                        linha.getString("TIPO_OS"),
+                        linha.getString("STATUS_DESCRICAO"),
+                        linha.getObject("DATA_ABERTURA", LocalDate.class),
+                        linha.getObject("DATA_EXECUCAO", LocalDate.class),
+                        linha.getBigDecimal("VALOR"),
+                        linha.getString("DESCRICAO_PROBLEMA"),
+                        linha.getString("O_QUE_FOI_FEITO")));
+    }
+
+    /**
+     * FUNCTION QUE RETORNA VARIÁVEL TIPO TABELA (multi-statement):
+     * FC_RESUMO_PRESTADORES(@inicio, @fim). No Java a chamada é igual à de
+     * uma function de tabela; a diferença está no SQL (a function preenche a
+     * variável @RESUMO com INSERT e depois faz RETURN).
+     */
+    public List<ResumoPrestadorDto> resumoPrestadores(LocalDate inicio, LocalDate fim) {
+        return jdbc.query(
+                "SELECT PRESTADOR_COD, NOME_PRESTADOR, QTD_CONCLUIDAS, FATURAMENTO "
+                        + "FROM dbo.FC_RESUMO_PRESTADORES(?, ?) "
+                        + "ORDER BY FATURAMENTO DESC",
+                new Object[] { inicio, fim }, new int[] { Types.DATE, Types.DATE },
+                (linha, n) -> new ResumoPrestadorDto(
+                        linha.getInt("PRESTADOR_COD"),
+                        linha.getString("NOME_PRESTADOR"),
+                        linha.getInt("QTD_CONCLUIDAS"),
+                        linha.getBigDecimal("FATURAMENTO")));
     }
 }

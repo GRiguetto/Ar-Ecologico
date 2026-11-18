@@ -21,9 +21,12 @@
      - NENHUM DROP DATABASE no arquivo
 
    Como executar:
-     sqlcmd -S localhost -E -C -f 65001 -d teste1 -i sql\views_e_functions.sql
-   ou abra no SSMS, escolha o banco e execute (F5).
+     sqlcmd -S localhost -E -C -f 65001 -d bd_ar -i sql\views_e_functions.sql
+   ou abra no SSMS e execute (F5). O USE abaixo garante o banco certo.
    ===================================================================== */
+
+USE bd_ar;
+GO
 
 
 /* =====================================================================
@@ -69,7 +72,7 @@ FROM CONTRATOS C
 WHERE C.STATUS = 1;
 GO
 
--- Resumo de OS por situacao (versao com COUNT unica, como a doc recomenda).
+-- Resumo de OS por situacao (versao com COUNT unica).
 CREATE OR ALTER VIEW VW_OS_POR_STATUS
 AS
 SELECT
@@ -82,7 +85,7 @@ FROM ORDENS_SERVICOS;
 GO
 
 -- Contratos ativos que terminam nos proximos 30 dias (lista).
-CREATE OR ALTER VIEW VW_CONTRATOS_VENCENDO_30_DIAS
+CREATE VIEW VW_CONTRATOS_VENCENDO_30_DIAS
 AS
 SELECT
     C.COD_CONTRATO,
@@ -326,6 +329,38 @@ RETURN
 );
 GO
 
+-- Faturamento por prestador no periodo.
+-- FUNCTION QUE RETORNA VARIAVEL TIPO TABELA:
+--   1) RETURNS @RESUMO TABLE (...)  -> declara a variavel tipo tabela
+--   2) INSERT INTO @RESUMO ...      -> preenche a variavel
+--   3) RETURN                       -> devolve a variavel
+-- So conta OS concluidas (STATUS = 3), pela data de execucao.
+-- Usada no sistema: GET /dashboard/resumo-prestadores (tabela "Resumo por prestador").
+CREATE FUNCTION FC_RESUMO_PRESTADORES (@DataInicio DATE, @DataFim DATE)
+RETURNS @RESUMO TABLE (
+    PRESTADOR_COD   INT,
+    NOME_PRESTADOR  VARCHAR(100),
+    QTD_CONCLUIDAS  INT,
+    FATURAMENTO     DECIMAL(12,2)
+)
+AS
+BEGIN
+    INSERT INTO @RESUMO
+    SELECT  OS.PRESTADOR_SERVICO_COD,
+            P.NOME,
+            COUNT(*),
+            SUM(OS.VALOR)
+    FROM ORDENS_SERVICOS OS
+    INNER JOIN PESSOAS P ON P.COD_PESSOA = OS.PRESTADOR_SERVICO_COD
+    WHERE OS.STATUS = 3
+      AND (@DataInicio IS NULL OR OS.DATA_EXECUCAO >= @DataInicio)
+      AND (@DataFim    IS NULL OR OS.DATA_EXECUCAO <= @DataFim)
+    GROUP BY OS.PRESTADOR_SERVICO_COD, P.NOME;
+
+    RETURN;
+END
+GO
+
 
 /* =====================================================================
    PARTE C - COMO CONSULTAR (rode no SSMS para ver o resultado)
@@ -352,6 +387,8 @@ SELECT * FROM VW_PAGAMENTO_PRESTADOR_SERVICO;
 SELECT dbo.FC_TOTAL_OS(1) AS TOTAL_LIQUIDO_OS_1;
 SELECT * FROM FC_HISTORICO_SERVICOS('Maria');
 SELECT * FROM FC_CONTRATOS_CLIENTES('Clinica');
+SELECT * FROM FC_RESUMO_PRESTADORES('2026-06-01', '2026-11-30') ORDER BY FATURAMENTO DESC;
+SELECT * FROM FC_RESUMO_PRESTADORES(NULL, NULL);   -- todo o periodo
 
 -- Conferir a regra "valor digitado x valor dos itens" (ponto 6 da secao 8 da doc):
 SELECT COD_OS, VALOR AS VALOR_DIGITADO, dbo.FC_TOTAL_OS(COD_OS) AS VALOR_DOS_ITENS

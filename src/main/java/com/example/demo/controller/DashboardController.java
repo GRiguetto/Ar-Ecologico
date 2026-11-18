@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.ContratoVencendoDto;
 import com.example.demo.dto.DashboardCartoesDto;
+import com.example.demo.dto.HistoricoServicoDto;
+import com.example.demo.dto.OrdemServicoPessoaDto;
+import com.example.demo.dto.ResumoPrestadorDto;
 import com.example.demo.service.DashboardService;
 
 @RestController
@@ -38,5 +41,29 @@ public class DashboardController {
     @GetMapping("/contratos-vencendo")
     public List<ContratoVencendoDto> contratosVencendo() {
         return service.contratosVencendo();
+    }
+
+    /** GET /dashboard/ordens-servico-pessoas?inicio=2026-06-01 : VIEW VW_ORDENS_SERVICO_PESSOAS (inicio opcional). */
+    @GetMapping("/ordens-servico-pessoas")
+    public List<OrdemServicoPessoaDto> ordensServicoPessoas(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio) {
+        return service.ordensServicoPessoas(inicio);
+    }
+
+    /** GET /dashboard/historico-cliente?nome=Maria : FUNCTION de tabela FC_HISTORICO_SERVICOS. */
+    @GetMapping("/historico-cliente")
+    public List<HistoricoServicoDto> historicoCliente(@RequestParam String nome) {
+        return service.historicoServicos(nome.trim());
+    }
+
+    /**
+     * GET /dashboard/resumo-prestadores?inicio=2026-06-01&fim=2026-11-30
+     * FUNCTION de variável tipo tabela FC_RESUMO_PRESTADORES (inicio e fim opcionais).
+     */
+    @GetMapping("/resumo-prestadores")
+    public List<ResumoPrestadorDto> resumoPrestadores(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+        return service.resumoPrestadores(inicio, fim);
     }
 }

@@ -33,6 +33,16 @@
       <div class="secao"><h3>Pessoa física e jurídica</h3><div id="graficoTipoCliente"></div></div>
       <div class="secao largo"><h3>Últimas ordens de serviço</h3><div id="ultimasOs"></div></div>
       <div class="secao largo"><h3>Contratos vencendo em 30 dias</h3><div id="contratosVencendo"></div></div>
+      <div class="secao largo"><h3>Ordens de serviço: cliente e prestador</h3><div id="osPessoas"></div></div>
+      <div class="secao largo"><h3>Resumo por prestador (no período)</h3><div id="resumoPrestadores"></div></div>
+      <div class="secao largo"><h3>Histórico de serviços do cliente</h3>
+        <form id="formHistorico" class="busca-historico">
+          <input id="nomeHistorico" type="search" placeholder="Nome do cliente (ex.: Maria, Padaria)" required minlength="2">
+          <button type="submit">Buscar</button>
+        </form>
+        <p id="mensagemHistorico" class="erro" role="alert"></p>
+        <div id="historicoCliente"><p class="vazio">Digite um nome e clique em Buscar.</p></div>
+      </div>
       <div class="secao"><h3>Equipamentos por contrato</h3><div id="graficoEquipamentos"></div></div>
       <div class="secao"><h3>Pagamento por funcionário</h3><div id="graficoPagamentoFuncionarios"></div></div>
       <div class="secao"><h3>Faturamento líquido por serviço</h3><div id="graficoServicos"></div></div>

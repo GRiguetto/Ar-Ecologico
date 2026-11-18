@@ -120,14 +120,14 @@ public class ContratoService {
     private void validar(ContratoEntity contrato) {
         if ((contrato.getPessoaFisicaCod() == null) == (contrato.getPessoaJuridicaCod() == null)) {
             throw new RegraNegocioException(
-                    "Informe exatamente um entre pessoaFisicaCod e pessoaJuridicaCod");
+                    "Escolha o cliente do contrato.");
         }
         if (contrato.getStatus() == null || contrato.getStatus() < 1 || contrato.getStatus() > 2) {
-            throw new RegraNegocioException("status do contrato deve ser 1 (ativo) ou 2 (inativo)");
+            throw new RegraNegocioException("Escolha a situação do contrato (ativo ou inativo).");
         }
         if (contrato.getDataInicio() != null && contrato.getDataFim() != null
                 && contrato.getDataFim().isBefore(contrato.getDataInicio())) {
-            throw new RegraNegocioException("dataFim não pode ser anterior a dataInicio");
+            throw new RegraNegocioException("A data de fim não pode ser anterior à data de início.");
         }
     }
 

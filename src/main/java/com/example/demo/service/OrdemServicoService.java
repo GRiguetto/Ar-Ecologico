@@ -143,12 +143,10 @@ public class OrdemServicoService {
 
     private void validar(OrdemServicoEntity os) {
         if ((os.getPessoaFisicaCod() == null) == (os.getPessoaJuridicaCod() == null)) {
-            throw new RegraNegocioException(
-                    "Informe exatamente um entre pessoaFisicaCod e pessoaJuridicaCod");
+            throw new RegraNegocioException("Escolha o cliente da ordem de serviço.");
         }
         if (os.getStatus() == null || os.getStatus() < 1 || os.getStatus() > 4) {
-            throw new RegraNegocioException(
-                    "status da OS deve ser 1 (aberta), 2 (em andamento), 3 (concluída) ou 4 (cancelada)");
+            throw new RegraNegocioException("Escolha o status da ordem de serviço.");
         }
     }
 
